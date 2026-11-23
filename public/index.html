@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b6e6e">
+<title>LocalDrop</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" href="/icon-192.png">
+<style>
+:root{--bg1:#e8f3f0;--bg2:#dce8f4;--glass:rgba(255,255,255,.72);--sheet:#fbfdfc;--ink:#0e2a33;--sub:#5b7077;--line:#cadad7;--accent:#0b7a75;--accent-ink:#fff;--ok:#1ba672;--warn:#f2b632;--ring:#b9cfcb;--me:#0e2a33}
+@media (prefers-color-scheme:dark){:root{--bg1:#0f2026;--bg2:#091114;--glass:rgba(21,37,43,.75);--sheet:#101d22;--ink:#e6f1ef;--sub:#8ea6aa;--line:#24383e;--accent:#5ed3c8;--accent-ink:#06201d;--ring:#1f3a40;--me:#2b5560}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;height:100dvh;overflow:hidden;color:var(--ink);background:radial-gradient(900px 600px at 50% 45%,var(--bg1),var(--bg2));font:16px/1.55 ui-rounded,"Hiragino Maru Gothic ProN","BIZ UDPGothic","Yu Gothic UI",system-ui,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button,input{font:inherit;color:inherit}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;gap:10px}
+.brand{display:flex;align-items:center;gap:8px}
+.brand svg{width:28px;height:28px;color:var(--accent)}
+h1{margin:0;font-size:1.2rem;font-weight:800}
+.tools{display:flex;gap:8px;align-items:center}
+.ib{all:unset;cursor:pointer;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(8px)}
+.ib svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ib.on{color:var(--accent)}
+.pill{all:unset;cursor:pointer;padding:9px 18px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:.92rem;text-align:center}
+.pill.g{background:transparent;color:inherit;box-shadow:inset 0 0 0 1.5px var(--line)}
+.pill.sm{padding:5px 14px;font-size:.85rem}
+:is(.ib,.pill,.peer,.code,.tabs button,#bar button):focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+#bar{margin:0 18px 6px;padding:8px 14px;border-radius:14px;background:var(--accent);color:var(--accent-ink);display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.88rem;font-weight:700}
+#bar button{all:unset;cursor:pointer;text-decoration:underline}
+
+/* レーダー */
+#stage{flex:1;min-height:0;position:relative;overflow:hidden}
+.ring{position:absolute;left:50%;top:50%;border-radius:50%;border:1.5px solid var(--ring);transform:translate(-50%,-50%)}
+.r1{width:34vmin;height:34vmin}.r2{width:62vmin;height:62vmin}.r3{width:92vmin;height:92vmin}.r4{width:124vmin;height:124vmin}
+.pulse{position:absolute;left:50%;top:50%;width:124vmin;height:124vmin;margin:-62vmin 0 0 -62vmin;border-radius:50%;border:2px solid var(--accent);opacity:0}
+#core{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:68px;height:68px;border-radius:50%;background:var(--glass);border:1px solid var(--line);display:grid;place-items:center;backdrop-filter:blur(8px);color:var(--accent)}
+#core svg{width:34px;height:34px}
+#empty{position:absolute;left:50%;top:calc(50% + 54px);transform:translateX(-50%);width:min(80%,26em);text-align:center;color:var(--sub);font-size:.88rem;margin:0}
+.peer{all:unset;cursor:pointer;position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;width:140px;padding:6px;border-radius:22px;text-align:center}
+.peer b{margin-top:10px;font-size:.88rem;line-height:1.25;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.peer small{font-size:.7rem;color:var(--sub);line-height:1.25}
+.orb{position:relative;width:64px;height:64px;border-radius:50%;background:var(--pc);color:#fff;display:grid;place-items:center;font-size:1.6rem;font-weight:800;box-shadow:0 8px 22px color-mix(in srgb,var(--pc) 40%,transparent)}
+.prog{position:absolute;inset:-7px;border-radius:50%;background:conic-gradient(var(--pc) calc(var(--prog)*1%),transparent 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
+.st{position:absolute;right:0;bottom:0;width:16px;height:16px;border-radius:50%;border:3px solid var(--bg1);background:var(--warn)}
+.st.on{background:var(--ok)}.st.relay{background:#4aa3ff}
+.badge{position:absolute;right:-6px;top:-6px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#ff3b5c;color:#fff;font:700 .75rem/22px system-ui,sans-serif;text-align:center;font-style:normal}
+.peer.wait .orb{opacity:.55}
+.peer.sel .orb{outline:3px solid var(--pc);outline-offset:5px}
+.peer.drop .orb{transform:scale(1.15)}
+@media(prefers-reduced-motion:no-preference){
+  .pulse{animation:ping 5s ease-out infinite}.pulse.b{animation-delay:2.5s}
+  .orb{animation:bob 6s ease-in-out infinite}
+  .peer.ask .orb{animation:ask 1.4s infinite}
+  .peer:hover .orb{animation-play-state:paused}
+}
+@keyframes ping{0%{transform:scale(.15);opacity:.4}100%{transform:scale(1);opacity:0}}
+@keyframes bob{50%{transform:translateY(-5px)}}
+@keyframes ask{0%{box-shadow:0 0 0 0 var(--pc)}70%,100%{box-shadow:0 0 0 20px transparent}}
+
+/* 自分の名前 */
+.who{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:8px 16px 16px;color:var(--sub);font-size:.85rem}
+.who label{display:flex;align-items:center;gap:6px}
+#myname{all:unset;box-sizing:border-box;width:9.5em;padding:3px 8px;border-radius:10px;background:var(--glass);border:1px solid var(--line);color:var(--ink);font-weight:800;text-align:center;cursor:text}
+#myname:focus{border-color:var(--accent);outline:2px solid var(--accent)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--warn)}.dot.on{background:var(--ok)}
+
+/* チャット */
+#sheet{position:fixed;z-index:20;left:0;right:0;bottom:0;height:min(76dvh,600px);background:var(--sheet);border-radius:26px 26px 0 0;box-shadow:0 -12px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);--pc:var(--accent)}
+#sheet.open{transform:none}
+@media(min-width:860px){
+  #sheet{left:auto;top:0;height:auto;width:400px;border-radius:0;transform:translateX(105%)}
+  #sheet.open{transform:none}
+  body.sheet-open #stage,body.sheet-open>header,body.sheet-open>.who,body.sheet-open>#bar{margin-right:400px}
+}
+@media(max-width:859px){#sheet{height:min(62dvh,520px)}body.sheet-open #stage{margin-bottom:min(62dvh,520px)}body.sheet-open>.who{display:none}}
+@media(prefers-reduced-motion:reduce){#sheet{transition:none}}
+#shead{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+#shead .orb{width:40px;height:40px;font-size:1.1rem;animation:none;box-shadow:none;flex:none}
+#shead div{flex:1;min-width:0}
+#sname{display:block;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#sdev{font-size:.75rem;color:var(--sub)}
+#log{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.hint{color:var(--sub);text-align:center;margin:auto;font-size:.9rem}
+.b{max-width:86%;padding:9px 14px;border-radius:18px;overflow-wrap:anywhere;white-space:pre-wrap}
+.b.me{align-self:flex-end;background:var(--me);color:#fff;border-bottom-right-radius:5px}
+.b.them{align-self:flex-start;background:color-mix(in srgb,var(--pc) 15%,var(--sheet));border-bottom-left-radius:5px}
+.b.file{display:flex;flex-direction:column;gap:6px;white-space:normal;min-width:12em}
+.fr{display:flex;align-items:baseline;gap:8px}
+.fn{flex:1;min-width:0;overflow-wrap:anywhere;font-weight:700}
+.b small{opacity:.75}
+.b a.mini{color:inherit;font-weight:700;text-decoration:underline}
+.bar2{height:6px;border-radius:3px;background:rgba(127,127,127,.3);overflow:hidden}
+.bar2 span{display:block;height:100%;background:var(--ok)}
+.act{display:flex;gap:8px;flex-wrap:wrap}
+.b.me .pill{background:#fff;color:#0e2a33}
+#form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);align-items:center}
+#text{flex:1;min-width:0;background:var(--bg1);border:1px solid var(--line);border-radius:999px;padding:10px 16px}
+#text:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+#form :disabled{opacity:.4;cursor:not-allowed}
+
+/* つなぐ */
+dialog{border:0;border-radius:26px;padding:20px;width:min(92vw,420px);background:var(--sheet);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(4,14,17,.55);backdrop-filter:blur(4px)}
+dialog header{padding:0 0 8px}
+h2{margin:0;font-size:1.05rem}
+.sub{color:var(--sub);font-size:.85rem;margin:4px 0 12px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--bg1);border-radius:999px;padding:4px;margin-bottom:14px}
+.tabs button{all:unset;cursor:pointer;text-align:center;padding:7px;border-radius:999px;font-weight:700;font-size:.9rem;color:var(--sub)}
+.tabs [aria-selected=true]{background:var(--sheet);color:var(--ink);box-shadow:0 1px 6px rgba(0,0,0,.15)}
+.show{display:flex;flex-direction:column;align-items:center;gap:8px;margin:6px 0 14px}
+.qr{width:152px;height:152px;background:#fff;border-radius:16px;padding:6px}
+.qr svg{width:100%;height:100%;display:block}
+.code{all:unset;cursor:pointer;font:800 2rem/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.3em;color:var(--accent);padding-left:.3em}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.join{display:flex;gap:8px;margin-top:12px}
+.join input{flex:1;min-width:0;font:800 1.2rem ui-monospace,Menlo,Consolas,monospace;letter-spacing:.2em;text-transform:uppercase;background:var(--bg1);border:1px solid var(--line);border-radius:14px;padding:8px 12px}
+.join input:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+#toast{position:fixed;left:50%;bottom:72px;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:var(--me);color:#fff;padding:10px 18px;border-radius:999px;font-size:.88rem;max-width:90vw;transition:.25s;z-index:50;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="16" cy="16" r="3" fill="currentColor"/><path d="M9.5 9.5a9.2 9.2 0 0 0 0 13M22.5 9.5a9.2 9.2 0 0 1 0 13M5 5a15.5 15.5 0 0 0 0 22M27 5a15.5 15.5 0 0 1 0 22"/></svg>
+    <h1>LocalDrop</h1>
+  </div>
+  <div class="tools">
+    <button class="ib" id="bNotify" type="button" hidden aria-label="通知を有効にする"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7M10 20a2 2 0 0 0 4 0"/></svg></button>
+    <button class="ib" id="bInstall" type="button" hidden aria-label="アプリとしてインストール"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg></button>
+    <button class="pill" id="bConnect" type="button">＋ つなぐ</button>
+  </div>
+</header>
+
+<div id="bar" hidden><span id="barText"></span><button id="bBarX" type="button">やめる</button></div>
+
+<main id="stage" aria-label="近くの端末">
+  <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="ring r4"></div>
+  <div class="pulse"></div><div class="pulse b"></div>
+  <div id="core" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="16" cy="16" r="3" fill="currentColor"/><path d="M9.5 9.5a9.2 9.2 0 0 0 0 13M22.5 9.5a9.2 9.2 0 0 1 0 13"/></svg></div>
+  <div id="peerLayer"></div>
+  <p id="empty">同じネットワークでこのページを開くと、ここに自動で表示されます。<br>離れた端末は「つなぐ」から。</p>
+</main>
+
+<footer class="who">
+  <span class="dot" id="dot" title="サーバーとの接続"></span>
+  <label>あなたは <input id="myname" maxlength="20" autocomplete="off" spellcheck="false" aria-label="あなたの表示名(タップで変更)"> として表示中</label>
+  <small id="mydev"></small>
+</footer>
+
+<aside id="sheet" aria-label="チャット" inert>
+  <div id="shead">
+    <span class="orb" id="sorb"></span>
+    <div><b id="sname"></b><small id="sdev"></small></div>
+    <button class="pill sm g" id="bUnpair" type="button" hidden>ペア解除</button>
+    <button class="ib" id="bClose" type="button" aria-label="閉じる"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div id="log" aria-live="polite"></div>
+  <form id="form">
+    <input id="pick" type="file" multiple hidden>
+    <button class="ib" id="bPick" type="button" aria-label="ファイルを送る"><svg viewBox="0 0 24 24"><path d="m20 11-8.5 8.5a5 5 0 0 1-7-7L13 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L14 7"/></svg></button>
+    <input id="text" type="text" placeholder="メッセージ" autocomplete="off" aria-label="メッセージ">
+    <button class="ib on" id="send" aria-label="送信"><svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+  </form>
+</aside>
+
+<dialog id="dlg" aria-labelledby="dtitle">
+  <header><h2 id="dtitle">離れた端末とつなぐ</h2><button class="ib" id="dClose" type="button" aria-label="閉じる"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
+  <p class="sub">同じネットワークの端末は自動で表示されます。</p>
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tPair" type="button" aria-selected="true">ペア(ずっと)</button>
+    <button role="tab" id="tRoom" type="button" aria-selected="false">ルーム(一時)</button>
+  </div>
+  <section id="pPair">
+    <p class="sub">一度ペアにすると、次回からは別のネットワークでも自動でつながります。</p>
+    <div class="show" id="pairShow" hidden><div class="qr" id="pairQr"></div><button class="code" id="pairCode" type="button" aria-label="ペアコード(押すとコピー)"></button><small class="sub" id="pairNote"></small></div>
+    <div class="row"><button class="pill" id="bPair" type="button">コードを作る</button></div>
+    <div class="join"><input id="pairIn" maxlength="6" inputmode="numeric" placeholder="123456" autocomplete="off" aria-label="6桁のペアコード"><button class="pill g" id="bPairJoin" type="button">つなぐ</button></div>
+  </section>
+  <section id="pRoom" hidden>
+    <p class="sub">コードかQRを知っている人だけが入れる一時的な部屋です。退出すると消えます。</p>
+    <div class="show" id="roomShow" hidden><div class="qr" id="roomQr"></div><button class="code" id="roomCode" type="button" aria-label="ルームコード(押すとコピー)"></button><div class="row"><button class="pill sm g" id="bRoomCopy" type="button">リンクをコピー</button><button class="pill sm g" id="bRoomLeave" type="button">退出</button></div></div>
+    <div class="row"><button class="pill" id="bRoom" type="button">ルームを作る</button></div>
+    <div class="join"><input id="roomIn" maxlength="5" placeholder="AB3DE" autocomplete="off" autocapitalize="characters" aria-label="5文字のルームコード"><button class="pill g" id="bRoomJoin" type="button">入る</button></div>
+  </section>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="/qr.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

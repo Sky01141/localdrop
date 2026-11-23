@@ -1,0 +1,8 @@
+{
+  "name": "localdrop",
+  "version": "0.1.0",
+  "description": "同じネットワーク内でファイル・メッセージを送り合うWebアプリ (WebRTC)",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.18.0" }
+}
